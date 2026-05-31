@@ -1,0 +1,326 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.24.0 by Michael Rose
+  Copyright 2013-2020 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+<html lang="sv" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Här har vi seglat - SvenskaSeglare</title>
+<meta name="description" content="!J.A.Y.S.">
+
+
+  <meta name="author" content="Tony Johansson">
+  
+
+
+<meta property="og:type" content="website">
+<meta property="og:locale" content="sv_SE">
+<meta property="og:site_name" content="SvenskaSeglare">
+<meta property="og:title" content="Här har vi seglat">
+<meta property="og:url" content="https://svenskaseglare.se/rutter/">
+
+
+  <meta property="og:description" content="!J.A.Y.S.">
+
+
+
+  <meta property="og:image" content="https://svenskaseglare.se/assets/images/SvenskaSeglare.png">
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<link rel="canonical" href="https://svenskaseglare.se/rutter/">
+
+
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    
+      "@type": "Person",
+      "name": "Tony Johansson",
+      "url": "https://svenskaseglare.se/",
+      "sameAs": ["https://twitter.com/","https://github.com/"]
+    
+  }
+</script>
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="SvenskaSeglare Feed">
+
+
+<!-- https://t.co/dKP3o1e -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script>
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--map-local">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+          <a class="site-logo" href="/"><img src="/assets/images/SvenskaSeglare.png" alt="SvenskaSeglare"></a>
+        
+        <a class="site-title" href="/">
+          SvenskaSeglare
+          <span class="site-subtitle">En resa flera äventyr</span>
+        </a>
+        <ul class="visible-links"><li class="masthead__menu-item">
+              <a href="/blog/">Blog</a>
+            </li><li class="masthead__menu-item">
+              <a href="/arkiv/">Arkiv</a>
+            </li><li class="masthead__menu-item">
+              <a href="/rutter/">Rutter</a>
+            </li><li class="masthead__menu-item">
+              <a href="/bilder/">Foto</a>
+            </li></ul>
+        
+        <button class="search__toggle" type="button">
+          <span class="visually-hidden">Växla sökläge</span>
+          <i class="fas fa-search"></i>
+        </button>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Växla menyläge</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    
+      <div class="search-content">
+            <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+        <div class="search-content__inner-wrap"><form class="search-content__form" onkeydown="return event.key != 'Enter';" role="search">
+    <label class="sr-only" for="search">
+      Enter your search term...
+    </label>
+    <input type="search" id="search" class="search-input" tabindex="-1" placeholder="Fyll i sökterm..." />
+  </form>
+  <div id="results" class="results"></div></div>
+
+      </div>
+    
+
+    <div class="initial-content">
+      
+      
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div id="main" role="main">
+  <article class="splash" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Här har vi seglat">
+
+    <section class="page__content" itemprop="text">
+      <h1 id="vår-rutt">Vår rutt</h1>
+
+<p>Nedan ser du var vi är och var vi varit.</p>
+
+      
+      <div id="map" style="width: 100%; height: 1000px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: 20px;"></div>
+      <div id="route-meta" style="font-style: italic; margin-top: 10px; color: #666;">Laddar rutter...</div>
+
+    </section>
+  </article>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // 1. Initiera kartan över Sverige/Östersjön som startpunkt
+    const map = L.map('map').setView([59.3293, 18.0686], 6);
+
+    // 2. Lägg till standardsjökort/karta från OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Funktion för att ge varje rutt en egen distinkt färg på kartan
+    function getRandomColor() {
+        const colors = ['#ff4444', '#00ced1', '#2ed573', '#ffa500', '#1e90ff', '#9b59b6', '#e84393', '#fdcb6e'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    // 3. Hämta index-filen över alla rutter som skapats av Python-skriptet
+    fetch('/data/file_index.json')
+        .then(response => {
+            if (!response.ok) throw new Error('Hittade inte file index');
+            return response.json();
+        })
+        .then(fileList => {
+            if (fileList.length === 0) {
+                document.getElementById('route-meta').innerText = "Inga sparade rutter hittades.";
+                return;
+            }
+
+            const bounds = [];
+            const fetchPromises = [];
+
+            // 4. Loopa igenom varje enskild ruttfil i indexet
+            fileList.forEach(fileName => {
+                const promise = fetch(`/data/${fileName}`)
+                    .then(res => res.json())
+                    .then(coordinates => {
+                        // Kontrollera att positions-arrayen finns och innehåller punkter
+                        if (coordinates.positions && coordinates.positions.length > 0) {
+                            
+                            // Transformera [{"lat": x, "lon": y}] till [[x, y]] som Leaflet kräver
+                            const pathArray = coordinates.positions.map(p => [p.lat, p.lon]);
+
+                            // Rita ut ruttlinjen på kartan
+                            const polyline = L.polyline(pathArray, {
+                                color: getRandomColor(),
+                                weight: 4,
+                                opacity: 0.85
+                            }).addTo(map);
+
+                            // Snygga popup-namn när man klickar på start/slut (rensar bort filändelsen för renare text)
+                            const displayName = fileName.replace('rutt_', '').replace('.json', '').replace('_', ' kl ');
+
+                            // Lägg till markörer för start och slut på rutten
+                            L.marker(pathArray[0]).addTo(map).bindPopup(`<b>Start:</b> ${displayName}`);
+                            L.marker(pathArray[pathArray.length - 1]).addTo(map).bindPopup(`<b>Senaste position:</b> ${displayName}`);
+
+                            // Spara ruttens gränser för att kunna zooma rätt sen
+                            bounds.push(polyline.getBounds());
+                        }
+                    })
+                    .catch(err => console.error(`Fel vid inläsning av ${fileName}:`, err));
+                
+                fetchPromises.push(promise);
+            });
+
+            // 5. När ALLA filer har hämtats och ritats ut, auto-zooma kartan så att allt syns samtidigt
+            Promise.all(fetchPromises).then(() => {
+                if (bounds.length > 0) {
+                    const groupBounds = L.featureGroup(bounds.map(b => L.polyline([b.getNorthWest(), b.getSouthEast()]))).getBounds();
+                    map.fitBounds(groupBounds, { padding: [30, 30] });
+                    document.getElementById('route-meta').innerText = `Visar totalt ${fileList.length} sparade rutter.`;
+                }
+            });
+        })
+        .catch(error => {
+            console.error(error);
+            document.getElementById('route-meta').innerText = 'Kunde inte läsa rutt-indexet. Kontrollera att file index existerar.';
+        });
+</script>
+    </div>
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+      <li><strong>Kontakt:</strong></li>
+    
+
+    
+      
+        
+          <li><a href="https://www.facebook.com/yachting.earth" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i> Facebook</a></li>
+        
+      
+        
+          <li><a href="https://www.instagram.com/yachting.earth/" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-instagram" aria-hidden="true"></i> Instagram</a></li>
+        
+      
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Flöde</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2026 Tony Johansson</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+<script src="/assets/js/lunr/lunr.min.js"></script>
+<script src="/assets/js/lunr/lunr-store.js"></script>
+<script src="/assets/js/lunr/lunr-en.js"></script>
+
+
+
+
+
+
+
+  </body>
+</html>
+
