@@ -1,14 +1,9 @@
 {
     "date": "2025-08-07",
     "export_timestamp": "2026-06-01 21:04:28",
-    "point_count": 54,
+    "point_count": 53,
     "reduction_percent": 88,
     "positions": [
-        {
-            "time": "2025-08-07T00:00:00Z",
-            "lat": 37.887943,
-            "lon": 23.427676
-        },
         {
             "time": "2025-08-07T04:59:00Z",
             "lat": 37.887928,
