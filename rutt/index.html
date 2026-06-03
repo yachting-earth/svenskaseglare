@@ -176,7 +176,7 @@
   /* Standardstorlek för datorer */
   #map {
     width: 100%; 
-    height: 500px; /* Sänkt från 1000px för bättre överblick utan scrolling */
+    height: 600px; 
     border-radius: 4px; 
     box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
     margin-top: 20px;
@@ -188,7 +188,7 @@
       height: 450px; 
     }
     .map-control-btn {
-      width: 130px !important; /* Lite smalare knappar på mobilen */
+      width: 130px !important; 
       font-size: 11px !important;
       padding: 5px 8px !important;
     }
@@ -331,15 +331,15 @@
         const boatIcon = L.divIcon({
             html: `<div style="font-size: 30px; text-align: center; line-height: 30px;">⛵</div>`,
             iconSize: [30, 30],
-            iconAnchor: [15, 15], // Centrerar emojin exakt över koordinaten
-            className: 'custom-boat-icon' // Tom klass för att slippa Leaflets standard-fyrkant
+            iconAnchor: [15, 15], 
+            className: 'custom-boat-icon' 
         });
         boatMarkerInstance = L.marker(latlng, { icon: boatIcon });
         return boatMarkerInstance;
     }
 
     // ============================================================================
-    // 3. HUVUDFUNKTION (SEKVENTIELL LADDNING)
+    // 3. HUVUDFUNKTION (LADDAR BAKRIFRÅN / SENASTE FÖRST)
     // ============================================================================
     
     async function loadRoutes() {
@@ -353,23 +353,22 @@
                 return;
             }
 
-            // Sortera filerna bokstavsordning/kronologiskt så den senaste är SIST
+            // Sortera kronologiskt (äldst först, nyast sist)
             fileList.sort();
 
             const bounds = [];
             let successCount = 0;
             let errorCount = 0;
             
-            let latestRouteData = null;
-            let latestFilename = null;
             let lastPoint = null;
+            let navigationControlsAdded = false;
 
             document.getElementById('route-meta').innerText = `Laddar ${fileList.length} rutter...`;
 
-            // Vi kör en vanlig for-loop för att säkerställa kronologisk ordning
-            for (let i = 0; i < fileList.length; i++) {
+            // NYTT: Vi loopar BAKRIFRÅN (i = fileList.length - 1 ner till 0)
+            for (let i = fileList.length - 1; i >= 0; i--) {
                 const filename = fileList[i];
-                const isLastFile = (i === fileList.length - 1);
+                const isLatestFile = (i === fileList.length - 1); // Den absolut senaste filen laddas FÖRST nu
 
                 try {
                     const response = await fetch(`/data/${filename}`);
@@ -382,31 +381,48 @@
                     const pathArray = positions.map(p => [p.lat, p.lon]);
                     const color = getConsistentColor(filename);
 
-                    // 1. Rita ut själva linjen (Polyline)
+                    // 1. Rita ut linjen direkt
                     L.polyline(pathArray, {
                         color: color,
                         weight: 4,
                         opacity: 0.8
                     }).addTo(map);
 
-                    // Spara koordinater för kartans zoom
+                    // Spara koordinater för den totala utzoomningen
                     bounds.push(...pathArray);
 
-                    // 2. Sätt en prick i STARTEN på varje etapp
-                    createSmallCircleMarker(pathArray[0], color)
-                        .addTo(map)
-                        .bindPopup(createPopupContent(filename, routeData, "Etappstart"));
+                    // 2. Om detta är den senaste filen (och därmed allra första körningen i loopen!)
+                    if (isLatestFile) {
+                        lastPoint = [positions[positions.length - 1].lat, positions[positions.length - 1].lon];
+                        
+                        // Rita båten direkt och öppna dess popup på en gång!
+                        createBoatMarker(lastPoint)
+                            .addTo(map)
+                            .bindPopup(createPopupContent(filename, routeData, "SY Freya! ⛵"))
+                            .openPopup(); 
 
-                    // 3. Hantera slutpunkten
-                    if (isLastFile) {
-                        // Spara undan infon till efter loopen så vi bara får EN båt
-                        latestRouteData = routeData;
-                        latestFilename = filename;
+                        // Zooma in direkt (zoom 11) till båten, vänta inte på gamla filer
+                        map.setView(lastPoint, 11);
+                        
+                        // Sätt en prick i starten på den här sista etappen också
+                        createSmallCircleMarker(pathArray[0], color)
+                            .addTo(map)
+                            .bindPopup(createPopupContent(filename, routeData, "Etappstart"));
                     } else {
-                        // För gamla etapper sätter vi bara en prick vid slutet också
+                        // För alla äldre etapper, sätt ut prickar vid start och slut som vanligt
+                        createSmallCircleMarker(pathArray[0], color)
+                            .addTo(map)
+                            .bindPopup(createPopupContent(filename, routeData, "Etappstart"));
+
                         createSmallCircleMarker(pathArray[pathArray.length - 1], color)
                             .addTo(map)
                             .bindPopup(createPopupContent(filename, routeData, "Etappslut"));
+                    }
+
+                    // Skapa knapparna direkt efter att första (senaste) filen är på plats
+                    if (!navigationControlsAdded && lastPoint) {
+                        addNavigationControls(lastPoint, bounds);
+                        navigationControlsAdded = true;
                     }
 
                     successCount++;
@@ -414,69 +430,12 @@
                     console.error(`Fel vid inläsning av ${filename}:`, err);
                     errorCount++;
                 }
-            }
-
-            // ============================================================================
-            // 4. PLACERA UT BÅTEN OCH FOKUSERA VY (INITIAL ZOOM)
-            // ============================================================================
-            if (latestRouteData) {
-                const positions = latestRouteData.positions;
-                lastPoint = [positions[positions.length - 1].lat, positions[positions.length - 1].lon];
                 
-                // Rita båten
-                createBoatMarker(lastPoint)
-                    .addTo(map)
-                    .bindPopup(createPopupContent(latestFilename, latestRouteData, "SY Freya! ⛵"))
-                    .openPopup(); 
-
-                // Vid sidladdning: Zoom 6
-                map.setView(lastPoint, 6);
+                // Uppdatera laddningstexten under loppets gång
+                document.getElementById('route-meta').innerText = `Laddar... (${successCount}/${fileList.length})`;
             }
 
-            // ============================================================================
-            // 5. SKAPA NAVIGATIONSKNAPPAR (KONTROLLER)
-            // ============================================================================
-            if (bounds.length > 0) {
-                const allBounds = L.latLngBounds(bounds);
-
-                // Skapa en Leaflet-kontrollbehållare för våra knappar uppe till vänster
-                const navigationControls = L.control({ position: 'topleft' });
-
-                navigationControls.onAdd = function() {
-                    const container = L.DomUtil.create('div', 'map-button-container');
-                    
-                    // KNAPP 1: Hitta båten (Zoom 15)
-                    if (lastPoint) {
-                        const boatBtn = L.DomUtil.create('button', 'map-control-btn', container);
-                        boatBtn.innerHTML = '⛵ Hitta SY Freya';
-                        boatBtn.onclick = function(e) {
-                            e.preventDefault();
-                            map.setView(lastPoint, 15);
-                            if (boatMarkerInstance) {
-                                boatMarkerInstance.openPopup();
-                            }
-                        };
-                    }
-
-                    // KNAPP 2: Visa hela rutten
-                    const homeBtn = L.DomUtil.create('button', 'map-control-btn', container);
-                    homeBtn.innerHTML = '🗺️ Visa hela rutten';
-                    homeBtn.onclick = function(e) {
-                        e.preventDefault();
-                        map.fitBounds(allBounds, { padding: [40, 40] });
-                    };
-                    
-                    return container;
-                };
-
-                navigationControls.addTo(map);
-                
-                if (!latestRouteData) {
-                    map.fitBounds(allBounds, { padding: [40, 40] });
-                }
-            }
-
-            // Uppdatera texten under kartan
+            // Slutgiltig textuppdatering när allt (även det historiska) är färdigladdat
             document.getElementById('route-meta').innerText = errorCount > 0 
                 ? `Visar ${successCount}/${fileList.length} etapper (${errorCount} misslyckades)`
                 : `Visar totalt ${fileList.length} sparade etapper.`;
@@ -485,6 +444,39 @@
             console.error('Kritiskt fel:', error);
             document.getElementById('route-meta').innerText = 'Kunde inte läsa rutt-indexet.';
         }
+    }
+
+    // Separerad hjälpfunktion för att bygga knapparna dynamiskt
+    function addNavigationControls(lastPoint, bounds) {
+        const navigationControls = L.control({ position: 'topright' });
+
+        navigationControls.onAdd = function() {
+            const container = L.DomUtil.create('div', 'map-button-container');
+            
+            // KNAPP 1: Hitta båten (Zoom 15)
+            const boatBtn = L.DomUtil.create('button', 'map-control-btn', container);
+            boatBtn.innerHTML = '⛵ Hitta SY Freya';
+            boatBtn.onclick = function(e) {
+                e.preventDefault();
+                map.setView(lastPoint, 15);
+                if (boatMarkerInstance) {
+                    boatMarkerInstance.openPopup();
+                }
+            };
+
+            // KNAPP 2: Visa hela rutten
+            const homeBtn = L.DomUtil.create('button', 'map-control-btn', container);
+            homeBtn.innerHTML = '🗺️ Visa hela rutten';
+            homeBtn.onclick = function(e) {
+                e.preventDefault();
+                const allBounds = L.latLngBounds(bounds);
+                map.fitBounds(allBounds, { padding: [40, 40] });
+            };
+            
+            return container;
+        };
+
+        navigationControls.addTo(map);
     }
 
     loadRoutes();
