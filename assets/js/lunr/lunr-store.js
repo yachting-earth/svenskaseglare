@@ -413,8 +413,8 @@ var store = [{
     "title": "Projekt",
     "excerpt":"# Våra pågående projekt  Här hittar du våra pågående projekt, ett projekt kan ha fyra olika stadier om vi inte räknar med *skrotat*  * Planering Ett projekt som lever i *planeringsstadiet* är något vi funderar på att bygga/genomföra. Här samlar vi information och lägger upp själva planen på hur och när projeketet lämpligast ska genomföras.  * Pågående Om inget oväntat dyker upp under planeringsstadiet som gör att vi väljer att antingen skrota projektet helt eller skjuta det på framtiden är det här under *pågående* som vi gör själva jobbet.  * Klart Här hamnar alla projekt som är klara och genomförda.  * På is Saker där vi under planeringsstadiet väljer att skjuta på framtiden istället för att skrota helt.  * Skrotat Projekt som vi under planeringen eller genomförandet väljer att avsluta och inte genomföra.   ## Planering  ## Pågående  ## Klara  ## På is  ## Skrotade","url": "https://svenskaseglare.se/projekt/"
   },{
-    "title": "Här har vi seglat",
-    "excerpt":"# Vår rutt  Nedan ser du var vi är och var vi varit. Systemet är under uppbyggnad och visar varken rätt data eller rätt format.","url": "https://svenskaseglare.se/rutt/"
+    "title": "Vår rutt",
+    "excerpt":"# Vår rutt  Nedan ser du var vi är och var vi varit. Klicka på \"Hitta SY Freya\" uppe till vänster på kartan för att se var vi befinner oss just nu.","url": "https://svenskaseglare.se/rutt/"
   },{
     "title": "Sailserver",
     "excerpt":"# Sailserver  Nedan hittar du data som vår Sailserver registrerar ombord. När vi ankrat och inte är ombord håller den ett öga på Freya, och meddelar oss via både SMS och larm, om ankaret inte sitter som det ska, om vinden plötsligt ökar eller ändrar riktning. När vi seglar så registrerar den såklart rutten, vår hastighet, hur mycket vi lutar, vindhastighet, riktning och mycket annat.  Klicka på \"mappen\" (andra ikonen från vänster) längst ner på sidan för att se våra tidigare rutter.  ","url": "https://svenskaseglare.se/sailserver/"
