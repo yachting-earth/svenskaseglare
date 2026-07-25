@@ -1,0 +1,44 @@
+---
+layout: archive
+---
+     {% include scripts.html %}
+     
+      {{ content }}
+
+<ul class="taxonomy__index">
+  {% assign postsInYear = site.posts | where_exp: "item", "item.hidden != true" | group_by_exp: 'post', 'post.date | date: "%Y"' %}
+  {% for year in postsInYear %}
+    <li>
+      <a href="#{{ year.name }}">
+        <strong>{{ year.name }}</strong> <span class="taxonomy__count">{{ year.items | size }}</span>
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+
+{% leaflet_map {"zoom" : 5,
+                "center" : [40.080957, 17.136717],
+                "providerBasemap": "OpenStreetMap.HOT"} %}
+    {%- for post in site.posts -%}
+        {% if post.location.geojson %}
+            {% leaflet_geojson {{post.location.geojson}} %}
+        {% elsif post.location.latitude and post.location.longitude %}
+            {% leaflet_marker { "latitude" : {{post.location.latitude}},
+                                "longitude" : {{post.location.longitude}} } %}
+        {% endif %}
+    {% endfor %}
+{% endleaflet_map %}
+
+{% assign entries_layout = page.entries_layout | default: 'list' %}
+{% assign postsByYear = site.posts | where_exp: "item", "item.hidden != true" | group_by_exp: 'post', 'post.date | date: "%Y"' %}
+{% for year in postsByYear %}
+  <section id="{{ year.name }}" class="taxonomy__section">
+    <h2 class="archive__subtitle">{{ year.name }}</h2>
+    <div class="entries-{{ entries_layout }}">
+      {% for post in year.items %}
+        {% include archive-single.html type=entries_layout %}
+      {% endfor %}
+    </div>
+    <a href="#page-title" class="back-to-top">{{ site.data.ui-text[site.locale].back_to_top | default: 'Tillbaks till toppen' }} &uarr;</a>
+  </section>
+{% endfor %}

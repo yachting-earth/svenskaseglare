@@ -1,0 +1,10 @@
+# Authors
+
+Mia Larsson:
+  name        : "Mia Larsson"
+  bio         : "32345,456"
+  avatar      : "/assets/images/mia.jpeg"
+  links:
+    - label: "Email"
+      icon: "fas fa-fw fa-envelope-square"
+      url: "mailto:mia@yachting.earth"

@@ -1,0 +1,31 @@
+{% if include.id %}
+  {% assign feature_row_posts = page[include.id] %}
+{% else %}
+  {% assign feature_row_posts = page.feature_row_posts %}
+{% endif %}
+
+<div class="feature__wrapper">
+{% for f in site.posts limit:3 %}
+    <div class="feature__item{% if include.type %}--{{ include.type }}{% endif %}">
+      <div class="archive__item">
+
+        <div class="archive__item-body">
+          {% if f.title %}
+            <h3 class="archive__item-title">{{ f.title }}</h3>
+            <div class="archive__item-excerpt"><i>{{ f.created }}</i></div>
+          {% endif %}
+
+          {% if f.excerpt %}
+            <div class="archive__item-excerpt">
+              {{ f.excerpt | markdownify | strip_html | truncate: 160}}
+              
+              <a href="{{ f.url | relative_url }}" class="btn {{ f.btn_class }}">{{ f.btn_label | default: site.data.ui-text[site.locale].more_label | default: "Read More" }}</a>
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+</div>

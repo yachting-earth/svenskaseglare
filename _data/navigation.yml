@@ -1,0 +1,10 @@
+# main links links
+main:
+  - title: "Blog"
+    url: /blog/
+  - title: "Arkiv"
+    url: /arkiv/
+  - title: "Rutt"
+    url: /rutt/ 
+  - title: "Foto"
+    url: /bilder/

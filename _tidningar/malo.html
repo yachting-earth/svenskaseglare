@@ -1,0 +1,18 @@
+---
+title: Malö Magazines
+layout: archive
+categories:
+  - Segling
+tags:
+  - Dokument
+---
+
+Tidningar och artiklar relaterade till Malö.
+
+<ul>
+{% for file in site.static_files %}
+    {% if file.path contains '/malo/' %}
+       <li><a href="../malo/{{ file.name }}" target=_blank>{{ file.name }}</a></li>
+    {% endif %}
+{% endfor %}
+</ul>

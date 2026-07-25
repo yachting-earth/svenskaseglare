@@ -1,0 +1,6 @@
+links: 
+- url: https://shop.hatlabs.fi/products/halmet
+  description: HALMET är Hat Labs Marine Engine & Tank interface.
+
+- url: https://github.com/RalfJL/VE.Direct2MQTT
+  description: Läs Victron VE med ESP32

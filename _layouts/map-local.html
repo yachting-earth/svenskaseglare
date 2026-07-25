@@ -1,0 +1,318 @@
+---
+layout: default
+---
+
+{% if page.header.overlay_color or page.header.overlay_image or page.header.image %}
+  {% include page__hero.html %}
+{% elsif page.header.video.id and page.header.video.provider %}
+  {% include page__hero_video.html %}
+{% endif %}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+  /* Standardstorlek för datorer */
+  #map {
+    width: 100%; 
+    height: 600px; 
+    border-radius: 4px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+    margin-top: 20px;
+  }
+
+  /* Mobilanpassning: Krymp kartans höjd på mindre skärmar */
+  @media (max-width: 768px) {
+    #map {
+      height: 450px; 
+    }
+    .map-control-btn {
+      width: 130px !important; 
+      font-size: 11px !important;
+      padding: 5px 8px !important;
+    }
+  }
+
+  .map-control-btn {
+    background: white;
+    padding: 6px 12px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 13px;
+    font-family: sans-serif;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    display: block;
+    margin-bottom: 5px; 
+    width: 150px;       
+    text-align: left;
+  }
+  .map-control-btn:hover {
+    background: #f4f4f4;
+  }
+</style>
+
+<div id="main" role="main">
+  <article class="splash" itemscope itemtype="https://schema.org/CreativeWork">
+    {% if page.title %}<meta itemprop="headline" content="{{ page.title | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
+
+    <section class="page__content" itemprop="text">
+      {{ content }}
+      
+      <div id="map"></div>
+      <div id="route-meta" style="font-style: italic; margin-top: 10px; color: #666;">Laddar rutter...</div>
+
+    </section>
+  </article>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // 1. INITIALISERING
+    const map = L.map('map').setView([38.5, 18.0], 6); // Standardvy innan data laddats
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // ============================================================================
+    // 2. UTILITY-FUNKTIONER
+    // ============================================================================
+    
+    function getConsistentColor(filename) {
+        const colors = [
+            '#ff4444', '#00ced1', '#2ed573', '#ffa500', '#1e90ff',
+            '#9b59b6', '#e84393', '#fdcb6e', '#00bfa4', '#ff6b9d',
+            '#c44569', '#ffa502', '#26de81', '#20bf6b', '#0984e3'
+        ];
+        let hash = 0;
+        for (let i = 0; i < filename.length; i++) {
+            const char = filename.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return colors[Math.abs(hash) % colors.length];
+    }
+
+    /**
+     * Beräknar avståndet i NM mellan två koordinater (Haversine)
+     */
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 3440.065; // Jordens radie i nautiska mil (NM)
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    function calculateRouteLength(positions) {
+        if (!positions || positions.length < 2) return 0;
+        let totalDistance = 0;
+        for (let i = 0; i < positions.length - 1; i++) {
+            totalDistance += haversineDistance(
+                positions[i].lat, positions[i].lon,
+                positions[i+1].lat, positions[i+1].lon
+            );
+        }
+        return totalDistance;
+    }
+
+    function parseTime(isoString) {
+        try {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return isoString; }
+    }
+
+    /**
+     * Skapar popup-innehåll med ruttinformation i NM
+     */
+    function createPopupContent(filename, routeData, label = "Ruttinfo") {
+        const dateMatch = filename.match(/rutt_(\d{4}-\d{2}-\d{2})/);
+        const date = dateMatch ? dateMatch[1] : 'Okänt datum';
+        const positions = routeData.positions || [];
+        const routeLength = calculateRouteLength(positions);
+        
+        return `
+            <div style="font-family: sans-serif; font-size: 13px;">
+                <b style="color: #333;">${label}</b><br>
+                <b>Datum:</b> ${date}<br>
+                <b>Distans:</b> ${routeLength.toFixed(1)} NM
+            </div>
+        `;
+    }
+
+    // Skapar en ren cirkel (inga blå nålar!)
+    function createSmallCircleMarker(latlng, color) {
+        return L.circleMarker(latlng, {
+            radius: 5, 
+            fillColor: color,
+            color: '#ffffff', // Vit kant så att prickarna syns ovanpå linjerna
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.9
+        });
+    }
+
+    // Skapar en ren båt-emoji utan bakgrund eller blå nål
+    let boatMarkerInstance = null; // Global referens för att kunna öppna dess popup via knappen
+    
+    function createBoatMarker(latlng) {
+        const boatIcon = L.divIcon({
+            html: `<div style="font-size: 30px; text-align: center; line-height: 30px;">⛵</div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15], 
+            className: 'custom-boat-icon' 
+        });
+        boatMarkerInstance = L.marker(latlng, { icon: boatIcon });
+        return boatMarkerInstance;
+    }
+
+    // ============================================================================
+    // 3. HUVUDFUNKTION (LADDAR BAKRIFRÅN / SENASTE FÖRST)
+    // ============================================================================
+    
+    async function loadRoutes() {
+        try {
+            const indexResponse = await fetch('/data/file_index.json');
+            if (!indexResponse.ok) throw new Error('Kunde inte läsa fil-index');
+            
+            let fileList = await indexResponse.json();
+            if (!fileList || fileList.length === 0) {
+                document.getElementById('route-meta').innerText = 'Inga sparade rutter hittades.';
+                return;
+            }
+
+            // Sortera kronologiskt (äldst först, nyast sist)
+            fileList.sort();
+
+            const bounds = [];
+            let successCount = 0;
+            let errorCount = 0;
+            
+            let lastPoint = null;
+            let navigationControlsAdded = false;
+
+            document.getElementById('route-meta').innerText = `Laddar ${fileList.length} rutter...`;
+
+            // NYTT: Vi loopar BAKRIFRÅN (i = fileList.length - 1 ner till 0)
+            for (let i = fileList.length - 1; i >= 0; i--) {
+                const filename = fileList[i];
+                const isLatestFile = (i === fileList.length - 1); // Den absolut senaste filen laddas FÖRST nu
+
+                try {
+                    const response = await fetch(`/data/${filename}`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const routeData = await response.json();
+                    if (!routeData.positions || routeData.positions.length === 0) continue;
+
+                    const positions = routeData.positions;
+                    const pathArray = positions.map(p => [p.lat, p.lon]);
+                    const color = getConsistentColor(filename);
+
+                    // 1. Rita ut linjen direkt
+                    L.polyline(pathArray, {
+                        color: color,
+                        weight: 4,
+                        opacity: 0.8
+                    }).addTo(map);
+
+                    // Spara koordinater för den totala utzoomningen
+                    bounds.push(...pathArray);
+
+                    // 2. Om detta är den senaste filen (och därmed allra första körningen i loopen!)
+                    if (isLatestFile) {
+                        lastPoint = [positions[positions.length - 1].lat, positions[positions.length - 1].lon];
+                        
+                        // Rita båten direkt och öppna dess popup på en gång!
+                        createBoatMarker(lastPoint)
+                            .addTo(map)
+                            .bindPopup(createPopupContent(filename, routeData, "SY Freya! ⛵"))
+                            .openPopup(); 
+
+                        // Zooma in direkt (zoom 11) till båten, vänta inte på gamla filer
+                        map.setView(lastPoint, 11);
+                        
+                        // Sätt en prick i starten på den här sista etappen också
+                        createSmallCircleMarker(pathArray[0], color)
+                            .addTo(map)
+                            .bindPopup(createPopupContent(filename, routeData, "Etappstart"));
+                    } else {
+                        // För alla äldre etapper, sätt ut prickar vid start och slut som vanligt
+                        createSmallCircleMarker(pathArray[0], color)
+                            .addTo(map)
+                            .bindPopup(createPopupContent(filename, routeData, "Etappstart"));
+
+                        createSmallCircleMarker(pathArray[pathArray.length - 1], color)
+                            .addTo(map)
+                            .bindPopup(createPopupContent(filename, routeData, "Etappslut"));
+                    }
+
+                    // Skapa knapparna direkt efter att första (senaste) filen är på plats
+                    if (!navigationControlsAdded && lastPoint) {
+                        addNavigationControls(lastPoint, bounds);
+                        navigationControlsAdded = true;
+                    }
+
+                    successCount++;
+                } catch (err) {
+                    console.error(`Fel vid inläsning av ${filename}:`, err);
+                    errorCount++;
+                }
+                
+                // Uppdatera laddningstexten under loppets gång
+                document.getElementById('route-meta').innerText = `Laddar... (${successCount}/${fileList.length})`;
+            }
+
+            // Slutgiltig textuppdatering när allt (även det historiska) är färdigladdat
+            document.getElementById('route-meta').innerText = errorCount > 0 
+                ? `Visar ${successCount}/${fileList.length} etapper (${errorCount} misslyckades)`
+                : `Visar totalt ${fileList.length} sparade etapper.`;
+
+        } catch (error) {
+            console.error('Kritiskt fel:', error);
+            document.getElementById('route-meta').innerText = 'Kunde inte läsa rutt-indexet.';
+        }
+    }
+
+    // Separerad hjälpfunktion för att bygga knapparna dynamiskt
+    function addNavigationControls(lastPoint, bounds) {
+        const navigationControls = L.control({ position: 'topright' });
+
+        navigationControls.onAdd = function() {
+            const container = L.DomUtil.create('div', 'map-button-container');
+            
+            // KNAPP 1: Hitta båten (Zoom 15)
+            const boatBtn = L.DomUtil.create('button', 'map-control-btn', container);
+            boatBtn.innerHTML = '⛵ Hitta SY Freya';
+            boatBtn.onclick = function(e) {
+                e.preventDefault();
+                map.setView(lastPoint, 15);
+                if (boatMarkerInstance) {
+                    boatMarkerInstance.openPopup();
+                }
+            };
+
+            // KNAPP 2: Visa hela rutten
+            const homeBtn = L.DomUtil.create('button', 'map-control-btn', container);
+            homeBtn.innerHTML = '🗺️ Visa hela rutten';
+            homeBtn.onclick = function(e) {
+                e.preventDefault();
+                const allBounds = L.latLngBounds(bounds);
+                map.fitBounds(allBounds, { padding: [40, 40] });
+            };
+            
+            return container;
+        };
+
+        navigationControls.addTo(map);
+    }
+
+    loadRoutes();
+</script>

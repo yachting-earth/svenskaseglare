@@ -1,0 +1,279 @@
+---
+layout: default
+---
+
+{% if page.header.overlay_color or page.header.overlay_image or page.header.image %}
+  {% include page__hero.html %}
+{% elsif page.header.video.id and page.header.video.provider %}
+  {% include page__hero_video.html %}
+{% endif %}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div id="main" role="main">
+  <article class="splash" itemscope itemtype="https://schema.org/CreativeWork">
+    {% if page.title %}<meta itemprop="headline" content="{{ page.title | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
+
+    <section class="page__content" itemprop="text">
+      {{ content }}
+      
+      <div id="map" style="width: 100%; height: 1000px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: 20px;"></div>
+      <div id="route-meta" style="font-style: italic; margin-top: 10px; color: #666;">Laddar rutter...</div>
+
+    </section>
+  </article>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // ============================================================================
+    // OPTIMERAD ROUTEVISARE - GPS-ruttevisualisering för Jekyll
+    // ============================================================================
+    
+    // 1. INITIALISERING
+    const map = L.map('map').setView([59.3293, 18.0686], 6);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // ============================================================================
+    // 2. UTILITY-FUNKTIONER
+    // ============================================================================
+    
+    /**
+     * Genererar en konsistent färg baserad på filnamnet
+     * Samma fil får alltid samma färg
+     */
+    function getConsistentColor(filename) {
+        const colors = [
+            '#ff4444', '#00ced1', '#2ed573', '#ffa500', '#1e90ff',
+            '#9b59b6', '#e84393', '#fdcb6e', '#00bfa4', '#ff6b9d',
+            '#c44569', '#ffa502', '#26de81', '#20bf6b', '#0984e3'
+        ];
+        
+        // Enkel hash-funktion från filnamn
+        let hash = 0;
+        for (let i = 0; i < filename.length; i++) {
+            const char = filename.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        
+        return colors[Math.abs(hash) % colors.length];
+    }
+
+    /**
+     * Beräknar avståndet i km mellan två koordinater (Haversine)
+     */
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Jordens radie i km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    /**
+     * Beräknar total längd på en rutt
+     */
+    function calculateRouteLength(positions) {
+        if (!positions || positions.length < 2) return 0;
+        
+        let totalDistance = 0;
+        for (let i = 0; i < positions.length - 1; i++) {
+            const current = positions[i];
+            const next = positions[i + 1];
+            totalDistance += haversineDistance(
+                current.lat, current.lon,
+                next.lat, next.lon
+            );
+        }
+        return totalDistance;
+    }
+
+    /**
+     * Parserar tid från ISO-format
+     */
+    function parseTime(isoString) {
+        try {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('sv-SE', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        } catch (e) {
+            return isoString;
+        }
+    }
+
+    /**
+     * Skapar popup-innehål med ruttinformation
+     */
+    function createPopupContent(filename, routeData, isStartPoint = false) {
+        const dateMatch = filename.match(/rutt_(\d{4}-\d{2}-\d{2})/);
+        const date = dateMatch ? dateMatch[1] : 'Okänt datum';
+        
+        const positions = routeData.positions || [];
+        const pointCount = positions.length;
+        const routeLength = calculateRouteLength(positions);
+        
+        if (isStartPoint) {
+            const startTime = positions.length > 0 ? parseTime(positions[0].time) : '-';
+            return `
+                <b>Start: ${date}</b><br>
+                Tid: ${startTime}<br>
+                Totala punkter: ${pointCount}<br>
+                Sträcka: ${routeLength.toFixed(1)} km
+            `;
+        } else {
+            const endTime = positions.length > 0 ? parseTime(positions[positions.length - 1].time) : '-';
+            return `
+                <b>Senaste position: ${date}</b><br>
+                Tid: ${endTime}<br>
+                Totala punkter: ${pointCount}<br>
+                Sträcka: ${routeLength.toFixed(1)} km
+            `;
+        }
+    }
+
+    /**
+     * Skapar en liten cirkelmarkör för startpunkt
+     */
+    function createSmallCircleMarker(latlng, color) {
+        return L.circleMarker(latlng, {
+            radius: 4,
+            fillColor: color,
+            color: color,
+            weight: 2,
+            opacity: 0.8,
+            fillOpacity: 0.8
+        });
+    }
+
+    /**
+     * Skapar båtikon för slutposition
+     */
+    function createBoatIcon(latlng, color) {
+        const boatIcon = L.divIcon({
+            html: `<div style="font-size: 24px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">⛵</div>`,
+            iconSize: [30, 30],
+            className: 'boat-marker'
+        });
+        return L.marker(latlng, { icon: boatIcon });
+    }
+
+    // ============================================================================
+    // 3. MAIN LOADING FUNCTION
+    // ============================================================================
+    
+    async function loadRoutes() {
+        try {
+            // Hämta index-fil
+            const indexResponse = await fetch('/data/file_index.json');
+            if (!indexResponse.ok) {
+                throw new Error('Kunde inte läsa fil-index');
+            }
+            
+            const fileList = await indexResponse.json();
+            
+            if (!fileList || fileList.length === 0) {
+                document.getElementById('route-meta').innerText = 'Inga sparade rutter hittades.';
+                return;
+            }
+
+            const bounds = [];
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Uppdatera status
+            document.getElementById('route-meta').innerText = `Laddar ${fileList.length} rutter...`;
+
+            // Hämta och plotta rutter - använd Promise.allSettled för robusthet
+            const routePromises = fileList.map(filename => 
+                fetchAndPlotRoute(filename, bounds)
+                    .then(() => {
+                        successCount++;
+                    })
+                    .catch(err => {
+                        console.error(`Fel vid inläsning av ${filename}:`, err);
+                        errorCount++;
+                    })
+            );
+
+            // Vänta på alla rutter
+            await Promise.allSettled(routePromises);
+
+            // Zooma karta för att visa alla rutter
+            if (bounds.length > 0) {
+                const allBounds = L.latLngBounds(bounds);
+                map.fitBounds(allBounds, { padding: [30, 30] });
+            }
+
+            // Uppdatera metadata
+            const statusText = errorCount > 0 
+                ? `Visar ${successCount}/${fileList.length} rutter (${errorCount} misslyckades)`
+                : `Visar totalt ${fileList.length} sparade rutter.`;
+            document.getElementById('route-meta').innerText = statusText;
+
+        } catch (error) {
+            console.error('Kritiskt fel:', error);
+            document.getElementById('route-meta').innerText = 
+                'Kunde inte läsa rutt-indexet. Kontrollera att file_index.json existerar.';
+        }
+    }
+
+    /**
+     * Hämtar och plottar en enskild ruttfil
+     */
+    async function fetchAndPlotRoute(filename, bounds) {
+        const response = await fetch(`/data/${filename}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const routeData = await response.json();
+        
+        if (!routeData.positions || routeData.positions.length === 0) {
+            throw new Error('Ingen positionsdata');
+        }
+
+        const positions = routeData.positions;
+        const pathArray = positions.map(p => [p.lat, p.lon]);
+        const color = getConsistentColor(filename);
+
+        // Rita polyline
+        const polyline = L.polyline(pathArray, {
+            color: color,
+            weight: 4,
+            opacity: 0.85
+        }).addTo(map);
+
+        bounds.push(...pathArray);
+
+        // Startpunkt - liten cirkel
+        const startPoint = pathArray[0];
+        createSmallCircleMarker(startPoint, color)
+            .addTo(map)
+            .bindPopup(createPopupContent(filename, routeData, true));
+
+        // Slutpunkt - båtikon
+        const endPoint = pathArray[pathArray.length - 1];
+        createBoatIcon(endPoint, color)
+            .addTo(map)
+            .bindPopup(createPopupContent(filename, routeData, false));
+    }
+
+    // ============================================================================
+    // 4. START
+    // ============================================================================
+    
+    loadRoutes();
+
+</script>
+

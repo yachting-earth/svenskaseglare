@@ -1,0 +1,51 @@
+---
+title: "Arkiv"
+layout: archive
+permalink: /arkiv/
+author_profile: false
+---
+
+Här sparar vi diverse dokument, recept, länkar till diverse sidor och annat som inte riktigt passar in på andra ställen.
+{% capture written_label %}'None'{% endcapture %}
+
+{% for collection in site.collections %}
+  {% unless collection.output == false or collection.label == "posts" %}
+    {% capture label %}{{ collection.label }}{% endcapture %}
+    {% if label != written_label %}
+      <h2 id="{{ label | slugify }}" class="archive__subtitle">{{ label }}</h2>
+      {% capture written_label %}{{ label }}{% endcapture %}
+    {% endif %}
+  {% endunless %}
+  {% for post in collection.docs %}
+    {% unless collection.output == false or collection.label == "posts" %}
+      {% include archive-single.html type=page.entries_layout %}
+    {% endunless %}
+  {% endfor %}
+{% endfor %}
+
+
+<h2 id="{{ label | slugify }}" class="archive__subtitle">Blandade länkar</h2>
+
+<ul>
+  {% for block in site.data.links.links %}
+    <li>
+      <a href="{{ block.url }}">
+        <div>{{ block.url }}</div>
+      </a>
+      <div>{{ block.description }}</div>
+    </li>
+  {% endfor %}
+</ul>
+
+<h2 id="{{ label | slugify }}" class="archive__subtitle">Mat</h2>
+
+<ul>
+  {% for block in site.data.mat.links %}
+    <li>
+      <a href="{{ block.url }}">
+        <div>{{ block.url }}</div>
+      </a>
+      <div>{{ block.description }}</div>
+    </li>
+  {% endfor %}
+</ul>
