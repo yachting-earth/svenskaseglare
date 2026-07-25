@@ -24,7 +24,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
-          bundler-cache: true # Cachar dina gems så framtida byggen går blixtsnabbt
+          bundler-cache: true
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
