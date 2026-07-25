@@ -5,7 +5,7 @@ tags:
 created: 2026-07-23
 updated: 2026-07-23
 published: true
-draft: true
+draft: false
 ---
 Segel är dyra. Det är väl ungefär den analysen de flesta av oss orkar med innan vi suckar, blundar och skriver under offerten från segelmakaren (om de inte köps hos vissa segelmakare i Italien då går det bra med ett handslag och en notis i en liten svart bok bakom disken). Sedan hänger duken där vit och fin i ett antal säsonger tills den ser trött ut, blir bukig och börjar likna en gammal potatissäck i kryss, varpå vi suckar en gång till och gör om proceduren.
 
