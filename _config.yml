@@ -240,10 +240,10 @@ compress_html:
 
 # Collections
 collections:
-  Tidningar:
+  tidningar:
     output: true
     permalink: /:collection/:path/
-  Manualer:
+  manualer:
     output: true
     permalink: /:collection/:path/
 
@@ -270,7 +270,7 @@ defaults:
   # _Malö
   - scope:
       path: "_tidningar"
-      type: Tidningar
+      type: tidningar
     values:
       layout: splash
       author_profile: false
@@ -278,7 +278,7 @@ defaults:
   # _Manualer
   - scope:
       path: "_manualer"
-      type: Manualer
+      type: manualer
     values:
       layout: splash
       author_profile: false
