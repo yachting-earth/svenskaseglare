@@ -70,6 +70,7 @@ layout: default
 
 <script>
     // 1. INITIALISERING
+    const API_BASE = 'https://freya-api.manjo.se';
     const map = L.map('map').setView([38.5, 18.0], 6); // Standardvy innan data laddats
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -80,15 +81,15 @@ layout: default
     // 2. UTILITY-FUNKTIONER
     // ============================================================================
     
-    function getConsistentColor(filename) {
+    function getConsistentColor(dateStr) {
         const colors = [
             '#ff4444', '#00ced1', '#2ed573', '#ffa500', '#1e90ff',
             '#9b59b6', '#e84393', '#fdcb6e', '#00bfa4', '#ff6b9d',
             '#c44569', '#ffa502', '#26de81', '#20bf6b', '#0984e3'
         ];
         let hash = 0;
-        for (let i = 0; i < filename.length; i++) {
-            const char = filename.charCodeAt(i);
+        for (let i = 0; i < dateStr.length; i++) {
+            const char = dateStr.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash;
         }
@@ -132,9 +133,8 @@ layout: default
     /**
      * Skapar popup-innehåll med ruttinformation i NM
      */
-    function createPopupContent(filename, routeData, label = "Ruttinfo") {
-        const dateMatch = filename.match(/rutt_(\d{4}-\d{2}-\d{2})/);
-        const date = dateMatch ? dateMatch[1] : 'Okänt datum';
+    function createPopupContent(dateStr, routeData, label = "Ruttinfo") {
+        const date = routeData.date || dateStr || 'Okänt datum';
         const positions = routeData.positions || [];
         const routeLength = calculateRouteLength(positions);
         
@@ -179,16 +179,17 @@ layout: default
     
     async function loadRoutes() {
         try {
-            const indexResponse = await fetch('/data/file_index.json');
+            const indexResponse = await fetch(`${API_BASE}/index.php`);
             if (!indexResponse.ok) throw new Error('Kunde inte läsa fil-index');
-            
+
             let fileList = await indexResponse.json();
             if (!fileList || fileList.length === 0) {
                 document.getElementById('route-meta').innerText = 'Inga sparade rutter hittades.';
                 return;
             }
 
-            // Sortera kronologiskt (äldst först, nyast sist)
+            // Sortera kronologiskt (äldst först, nyast sist) - datumsträngar (YYYY-MM-DD)
+            // sorterar korrekt lexikografiskt
             fileList.sort();
 
             const bounds = [];
@@ -202,19 +203,19 @@ layout: default
 
             // NYTT: Vi loopar BAKRIFRÅN (i = fileList.length - 1 ner till 0)
             for (let i = fileList.length - 1; i >= 0; i--) {
-                const filename = fileList[i];
-                const isLatestFile = (i === fileList.length - 1); // Den absolut senaste filen laddas FÖRST nu
+                const dateStr = fileList[i];
+                const isLatestFile = (i === fileList.length - 1); // Den absolut senaste dagen laddas FÖRST nu
 
                 try {
-                    const response = await fetch(`/data/${filename}`);
+                    const response = await fetch(`${API_BASE}/route.php?date=${dateStr}`);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
+
                     const routeData = await response.json();
                     if (!routeData.positions || routeData.positions.length === 0) continue;
 
                     const positions = routeData.positions;
                     const pathArray = positions.map(p => [p.lat, p.lon]);
-                    const color = getConsistentColor(filename);
+                    const color = getConsistentColor(dateStr);
 
                     // 1. Rita ut linjen direkt
                     L.polyline(pathArray, {
@@ -233,7 +234,7 @@ layout: default
                         // Rita båten direkt och öppna dess popup på en gång!
                         createBoatMarker(lastPoint)
                             .addTo(map)
-                            .bindPopup(createPopupContent(filename, routeData, "SY Freya! ⛵"))
+                            .bindPopup(createPopupContent(dateStr, routeData, "SY Freya! ⛵"))
                             .openPopup(); 
 
                         // Zooma in direkt (zoom 11) till båten, vänta inte på gamla filer
@@ -242,16 +243,16 @@ layout: default
                         // Sätt en prick i starten på den här sista etappen också
                         createSmallCircleMarker(pathArray[0], color)
                             .addTo(map)
-                            .bindPopup(createPopupContent(filename, routeData, "Etappstart"));
+                            .bindPopup(createPopupContent(dateStr, routeData, "Etappstart"));
                     } else {
                         // För alla äldre etapper, sätt ut prickar vid start och slut som vanligt
                         createSmallCircleMarker(pathArray[0], color)
                             .addTo(map)
-                            .bindPopup(createPopupContent(filename, routeData, "Etappstart"));
+                            .bindPopup(createPopupContent(dateStr, routeData, "Etappstart"));
 
                         createSmallCircleMarker(pathArray[pathArray.length - 1], color)
                             .addTo(map)
-                            .bindPopup(createPopupContent(filename, routeData, "Etappslut"));
+                            .bindPopup(createPopupContent(dateStr, routeData, "Etappslut"));
                     }
 
                     // Skapa knapparna direkt efter att första (senaste) filen är på plats
@@ -262,7 +263,7 @@ layout: default
 
                     successCount++;
                 } catch (err) {
-                    console.error(`Fel vid inläsning av ${filename}:`, err);
+                    console.error(`Fel vid inläsning av ${dateStr}:`, err);
                     errorCount++;
                 }
                 
