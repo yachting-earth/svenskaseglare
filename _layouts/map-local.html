@@ -81,21 +81,6 @@ layout: default
     // 2. UTILITY-FUNKTIONER
     // ============================================================================
     
-    function getConsistentColor(dateStr) {
-        const colors = [
-            '#ff4444', '#00ced1', '#2ed573', '#ffa500', '#1e90ff',
-            '#9b59b6', '#e84393', '#fdcb6e', '#00bfa4', '#ff6b9d',
-            '#c44569', '#ffa502', '#26de81', '#20bf6b', '#0984e3'
-        ];
-        let hash = 0;
-        for (let i = 0; i < dateStr.length; i++) {
-            const char = dateStr.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return colors[Math.abs(hash) % colors.length];
-    }
-
     /**
      * Beräknar avståndet i NM mellan två koordinater (Haversine)
      */
@@ -147,18 +132,6 @@ layout: default
         `;
     }
 
-    // Skapar en ren cirkel (inga blå nålar!)
-    function createSmallCircleMarker(latlng, color) {
-        return L.circleMarker(latlng, {
-            radius: 5, 
-            fillColor: color,
-            color: '#ffffff', // Vit kant så att prickarna syns ovanpå linjerna
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.9
-        });
-    }
-
     // Skapar en ren båt-emoji utan bakgrund eller blå nål
     let boatMarkerInstance = null; // Global referens för att kunna öppna dess popup via knappen
     
@@ -174,9 +147,9 @@ layout: default
     }
 
     // ============================================================================
-    // 3. HUVUDFUNKTION (LADDAR BAKRIFRÅN / SENASTE FÖRST)
+    // 3. HUVUDFUNKTION - EN SAMMANHÄNGANDE LINJE GENOM ALLA DAGAR
     // ============================================================================
-    
+
     async function loadRoutes() {
         try {
             const indexResponse = await fetch(`${API_BASE}/index.php`);
@@ -192,89 +165,56 @@ layout: default
             // sorterar korrekt lexikografiskt
             fileList.sort();
 
-            const bounds = [];
-            let successCount = 0;
-            let errorCount = 0;
-            
-            let lastPoint = null;
-            let navigationControlsAdded = false;
+            document.getElementById('route-meta').innerText = `Laddar ${fileList.length} dagar...`;
 
-            document.getElementById('route-meta').innerText = `Laddar ${fileList.length} rutter...`;
-
-            // NYTT: Vi loopar BAKRIFRÅN (i = fileList.length - 1 ner till 0)
-            for (let i = fileList.length - 1; i >= 0; i--) {
-                const dateStr = fileList[i];
-                const isLatestFile = (i === fileList.length - 1); // Den absolut senaste dagen laddas FÖRST nu
-
+            const results = await Promise.all(fileList.map(async (dateStr) => {
                 try {
                     const response = await fetch(`${API_BASE}/route.php?date=${dateStr}`);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
                     const routeData = await response.json();
-                    if (!routeData.positions || routeData.positions.length === 0) continue;
-
-                    const positions = routeData.positions;
-                    const pathArray = positions.map(p => [p.lat, p.lon]);
-                    const color = getConsistentColor(dateStr);
-
-                    // 1. Rita ut linjen direkt
-                    L.polyline(pathArray, {
-                        color: color,
-                        weight: 4,
-                        opacity: 0.8
-                    }).addTo(map);
-
-                    // Spara koordinater för den totala utzoomningen
-                    bounds.push(...pathArray);
-
-                    // 2. Om detta är den senaste filen (och därmed allra första körningen i loopen!)
-                    if (isLatestFile) {
-                        lastPoint = [positions[positions.length - 1].lat, positions[positions.length - 1].lon];
-                        
-                        // Rita båten direkt och öppna dess popup på en gång!
-                        createBoatMarker(lastPoint)
-                            .addTo(map)
-                            .bindPopup(createPopupContent(dateStr, routeData, "SY Freya! ⛵"))
-                            .openPopup(); 
-
-                        // Zooma in direkt (zoom 11) till båten, vänta inte på gamla filer
-                        map.setView(lastPoint, 11);
-                        
-                        // Sätt en prick i starten på den här sista etappen också
-                        createSmallCircleMarker(pathArray[0], color)
-                            .addTo(map)
-                            .bindPopup(createPopupContent(dateStr, routeData, "Etappstart"));
-                    } else {
-                        // För alla äldre etapper, sätt ut prickar vid start och slut som vanligt
-                        createSmallCircleMarker(pathArray[0], color)
-                            .addTo(map)
-                            .bindPopup(createPopupContent(dateStr, routeData, "Etappstart"));
-
-                        createSmallCircleMarker(pathArray[pathArray.length - 1], color)
-                            .addTo(map)
-                            .bindPopup(createPopupContent(dateStr, routeData, "Etappslut"));
-                    }
-
-                    // Skapa knapparna direkt efter att första (senaste) filen är på plats
-                    if (!navigationControlsAdded && lastPoint) {
-                        addNavigationControls(lastPoint, bounds);
-                        navigationControlsAdded = true;
-                    }
-
-                    successCount++;
+                    return { dateStr, routeData };
                 } catch (err) {
                     console.error(`Fel vid inläsning av ${dateStr}:`, err);
-                    errorCount++;
+                    return null;
                 }
-                
-                // Uppdatera laddningstexten under loppets gång
-                document.getElementById('route-meta').innerText = `Laddar... (${successCount}/${fileList.length})`;
+            }));
+
+            const successful = results.filter(r => r && r.routeData.positions && r.routeData.positions.length > 0);
+            const errorCount = results.length - successful.length;
+
+            if (successful.length === 0) {
+                document.getElementById('route-meta').innerText = 'Kunde inte läsa några rutter.';
+                return;
             }
 
-            // Slutgiltig textuppdatering när allt (även det historiska) är färdigladdat
-            document.getElementById('route-meta').innerText = errorCount > 0 
-                ? `Visar ${successCount}/${fileList.length} etapper (${errorCount} misslyckades)`
-                : `Visar totalt ${fileList.length} sparade etapper.`;
+            // Bygg EN sammanhängande sträcka av samtliga punkter i kronologisk ordning,
+            // oavsett hur långt det är mellan enskilda dagar
+            let allPositions = [];
+            for (const { routeData } of successful) {
+                allPositions.push(...routeData.positions);
+            }
+            const pathArray = allPositions.map(p => [p.lat, p.lon]);
+
+            L.polyline(pathArray, {
+                color: '#1e90ff',
+                weight: 3,
+                opacity: 0.8
+            }).addTo(map);
+
+            const lastPoint = pathArray[pathArray.length - 1];
+            const lastRoute = successful[successful.length - 1];
+
+            createBoatMarker(lastPoint)
+                .addTo(map)
+                .bindPopup(createPopupContent(lastRoute.dateStr, lastRoute.routeData, "SY Freya! ⛵"))
+                .openPopup();
+
+            map.setView(lastPoint, 11);
+            addNavigationControls(lastPoint, pathArray);
+
+            document.getElementById('route-meta').innerText = errorCount > 0
+                ? `Visar rutten (${errorCount} dagar kunde inte läsas in)`
+                : `Visar hela rutten, ${fileList.length} dagar sammanlänkade.`;
 
         } catch (error) {
             console.error('Kritiskt fel:', error);
