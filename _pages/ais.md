@@ -6,7 +6,7 @@ date: 2024-02-16T18:39:14+00:00
 
 Här är vi, eller rättare sagt här är Freya.
 
-Vår båt är utrustad med AIS (Automatic Identification System) och med en Sailserver som gör det möjligt att följa med oss ut till havs utan att lämna soffan för den som vill. För att komma till vår Sailserver som visa en massa intressanta saker är det bara till att klicka här --> <a href="/sailserver/" target="_blank">Sailserver</a>
+Vår båt är utrustad med AIS (Automatic Identification System) och med en Sailserver som gör det möjligt att följa med oss ut till havs utan att lämna soffan för den som vill.
 
 Den plats som visas på kartan nedan är från när en AIS-mottagare på land fångar upp när vår position. Om det inte finns några mottagare i närheten kommer kartan istället att visa vår senast kända position. På tal om kartan nedan, det vita är vatten och det grå är land...
 
