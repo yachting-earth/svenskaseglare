@@ -129,16 +129,11 @@ layout: default
         const date = routeData.date || dateStr || 'Okänt datum';
         const positions = routeData.positions || [];
         const routeLength = calculateRouteLength(positions);
-        const startTime = positions.length > 0 ? parseTime(positions[0].time) : '-';
-        const endTime = positions.length > 0 ? parseTime(positions[positions.length - 1].time) : '-';
-        const duration = positions.length > 1 ? formatDuration(positions[0].time, positions[positions.length - 1].time) : '-';
 
         return `
             <div style="font-family: sans-serif; font-size: 13px;">
                 <b style="color: #333;">${label}</b><br>
                 <b>Datum:</b> ${date}<br>
-                <b>Tid:</b> ${startTime} – ${endTime}<br>
-                <b>Varaktighet:</b> ${duration}<br>
                 <b>Distans:</b> ${routeLength.toFixed(1)} NM
             </div>
         `;
