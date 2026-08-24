@@ -38,10 +38,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- position.json; then
+          git add position.json
+          if git diff --cached --quiet -- position.json; then
             echo "No changes to position.json"
           else
-            git add position.json
             git commit -m "Update position.json"
             git push
           fi
