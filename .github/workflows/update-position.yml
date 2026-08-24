@@ -1,0 +1,47 @@
+name: Update position.json
+
+on:
+  schedule:
+    # 00:00 UTC every night
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-position
+  cancel-in-progress: false
+
+jobs:
+  update-position:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Fetch latest position
+        run: |
+          curl -sSL --fail -o position.json.tmp "https://api.svenskaseglare.se/position.php"
+
+      - name: Validate JSON
+        run: |
+          if ! jq empty position.json.tmp; then
+            echo "Fetched content is not valid JSON, aborting." >&2
+            exit 1
+          fi
+          mv position.json.tmp position.json
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- position.json; then
+            echo "No changes to position.json"
+          else
+            git add position.json
+            git commit -m "Update position.json"
+            git push
+          fi
